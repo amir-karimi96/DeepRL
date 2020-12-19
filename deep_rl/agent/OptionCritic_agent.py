@@ -61,13 +61,9 @@ class OptionCriticAgent(BaseAgent):
             dist = torch.distributions.Categorical(probs=prediction['pi'])
             actions = dist.sample()
             entropy = dist.entropy()
-            # added options to first element of actions for each env
-            actions_o = np.zeros((self.config.num_workers, self.task.action_dim),dtype=np.int64)
-            actions_o[:,0] = options
-            actions_o[:,1:] = to_np(actions).reshape(-1,self.task.action_dim-1)
-            #next_states, rewards, terminals, info = self.task.step(to_np(actions))
-            next_states, rewards, terminals, info = self.task.step(actions_o)
-            #print(info)
+            
+            next_states, rewards, terminals, info = self.task.step(to_np(actions))
+            
             self.record_online_return(info)
             next_states = config.state_normalizer(next_states)
             rewards = config.reward_normalizer(rewards)
@@ -234,3 +230,4 @@ class OptionCriticAgent_reset(BaseAgent):
         (pi_loss + q_loss + beta_loss).backward()
         nn.utils.clip_grad_norm_(self.network.parameters(), config.gradient_clip)
         self.optimizer.step()
+    
