@@ -1,0 +1,20 @@
+Hello, world!
+2020-12-18 21:59:30,129 - root - INFO: steps 0, 155344592.59 steps/s
+/project/6046950/amirk96/deeprl_env/lib/python3.6/site-packages/torch/nn/functional.py:1625: UserWarning: nn.functional.sigmoid is deprecated. Use torch.sigmoid instead.
+  warnings.warn("nn.functional.sigmoid is deprecated. Use torch.sigmoid instead.")
+start
+import done
+Traceback (most recent call last):
+  File "examples.py", line 665, in <module>
+    option_critic_feature(game=game)
+  File "examples.py", line 472, in option_critic_feature
+    run_steps(OptionCriticAgent(config))
+  File "/project/6046950/amirk96/DeepRL/deep_rl/utils/misc.py", line 30, in run_steps
+    agent.eval_episodes()
+  File "/project/6046950/amirk96/DeepRL/deep_rl/agent/BaseAgent.py", line 52, in eval_episodes
+    total_rewards = self.eval_episode()
+  File "/project/6046950/amirk96/DeepRL/deep_rl/agent/BaseAgent.py", line 42, in eval_episode
+    action = self.eval_step(state)
+  File "/project/6046950/amirk96/DeepRL/deep_rl/agent/OptionCritic_agent.py", line 127, in eval_step
+    prediction['pi'] = prediction['pi'][option]
+IndexError: index 1 is out of bounds for dimension 0 with size 1

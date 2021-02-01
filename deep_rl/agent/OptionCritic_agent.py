@@ -117,6 +117,18 @@ class OptionCriticAgent(BaseAgent):
         (pi_loss + q_loss + beta_loss).backward()
         nn.utils.clip_grad_norm_(self.network.parameters(), config.gradient_clip)
         self.optimizer.step()
+    def eval_step(self,state):
+        
+        prediction = self.network(state)
+        q = prediction['q']
+        option = to_np(q.argmax(-1))
+        
+        #prediction['pi'] = prediction['pi'][self.worker_index, options]
+        prediction['pi'] = prediction['pi'][0, option]
+        dist = torch.distributions.Categorical(probs=prediction['pi'])
+        action = to_np( dist.sample() )
+
+        return action
 
 class OptionCriticAgent_reset(BaseAgent):
     def __init__(self, config):
@@ -231,3 +243,17 @@ class OptionCriticAgent_reset(BaseAgent):
         nn.utils.clip_grad_norm_(self.network.parameters(), config.gradient_clip)
         self.optimizer.step()
     
+    def eval_step(self,state):
+        
+        prediction = self.network(state)
+        q = prediction['q']
+        #force to choose forward policy
+        option = [0]#to_np(q.argmax(-1))
+
+        #prediction['pi'] = prediction['pi'][self.worker_index, options]
+        prediction['pi'] = prediction['pi'][0,option]
+        dist = torch.distributions.Categorical(probs=prediction['pi'])
+        action = to_np( dist.sample())
+        
+        return action
+
