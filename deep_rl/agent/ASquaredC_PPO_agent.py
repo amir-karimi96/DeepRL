@@ -218,6 +218,7 @@ class ASquaredCPPOAgent(BaseAgent):
             v_hat = (prediction['q_o'] * pi_hat).sum(-1).unsqueeze(-1)
 
             next_states, rewards, terminals, info = self.task.step(to_np(actions))
+            self.task.env.envs[0].render()
             self.record_online_return(info)
             rewards = config.reward_normalizer(rewards)
             next_states = config.state_normalizer(next_states)
