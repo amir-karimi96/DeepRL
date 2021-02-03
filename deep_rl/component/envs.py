@@ -50,6 +50,8 @@ def make_env(env_id, seed, rank, episode_life=True):
                 env = TransposeImage(env)
             env = FrameStack(env, 4)
 
+        if env_id=="FetchPickAndPlaceDense-v1":
+            env = FetchWrapper(env)
         return env
 
     return _thunk
@@ -72,6 +74,29 @@ class OriginalReturnWrapper(gym.Wrapper):
 
     def reset(self):
         return self.env.reset()
+
+class FetchWrapper(gym.Wrapper):
+    def __init__(self, env):
+        gym.Wrapper.__init__(self, env)
+        self.total_rewards = 0
+        self.observation_space = Box(-np.inf, np.inf, shape=(31,), dtype='float32')
+    def step(self, action):
+        D, reward, done, info = self.env.step(action)
+        self.total_rewards += reward
+
+        obs = np.concatenate([D['desired_goal'],D['achieved_goal'],D['observation']])
+        if done:
+            info['episodic_return'] = self.total_rewards
+            self.total_rewards = 0
+        else:
+            info['episodic_return'] = None
+        #print(obs, reward, done, info)
+        return obs, reward, done, info
+
+    def reset(self):
+        D=self.env.reset()
+        obs = np.concatenate([D['desired_goal'],D['achieved_goal'],D['observation']])
+        return obs
 
 
 class PaddingObsWrapper(gym.Wrapper):
