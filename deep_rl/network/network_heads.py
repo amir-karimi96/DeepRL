@@ -281,31 +281,6 @@ class SingleOptionNet(nn.Module):
             'std': std,
             'beta': beta,
         }
-class SingleOptionNet_scripted(nn.Module):
-    def __init__(self,
-                 action_dim,
-                 body_fn,load_policy_path):
-        super(SingleOptionNet, self).__init__()
-        #self.pi_body = body_fn()
-        self.pi = 
-        self.beta_body = body_fn()
-        self.fc_pi = layer_init(nn.Linear(self.pi_body.feature_dim, action_dim), 1e-3)
-        self.fc_beta = layer_init(nn.Linear(self.beta_body.feature_dim, 1), 1e-3)
-        self.std = nn.Parameter(torch.zeros((1, action_dim)))
-
-    def forward(self, phi):
-        phi_pi = self.pi_body(phi)
-        mean = F.tanh(self.fc_pi(phi_pi))
-        std = F.softplus(self.std).expand(mean.size(0), -1)
-
-        phi_beta = self.beta_body(phi)
-        beta = F.sigmoid(self.fc_beta(phi_beta))
-
-        return {
-            'mean': mean,
-            'std': std,
-            'beta': beta,
-        }
 
 
 class OptionGaussianActorCriticNet(nn.Module, BaseNet):
