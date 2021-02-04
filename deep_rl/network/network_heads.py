@@ -6,7 +6,7 @@
 
 from .network_utils import *
 from .network_bodies import *
-
+from ..scripted_agents.scripted import *
 
 class VanillaNet(nn.Module, BaseNet):
     def __init__(self, output_dim, body):
@@ -260,18 +260,31 @@ class InterOptionPGNet(nn.Module, BaseNet):
 class SingleOptionNet(nn.Module):
     def __init__(self,
                  action_dim,
-                 body_fn):
+                 body_fn,
+                 scripted_agent=None,
+                 state_normalizer=None):
         super(SingleOptionNet, self).__init__()
         self.pi_body = body_fn()
         self.beta_body = body_fn()
         self.fc_pi = layer_init(nn.Linear(self.pi_body.feature_dim, action_dim), 1e-3)
         self.fc_beta = layer_init(nn.Linear(self.beta_body.feature_dim, 1), 1e-3)
         self.std = nn.Parameter(torch.zeros((1, action_dim)))
-
+        if scripted_agent is not None:
+            self.scripted_agent = globals()[scripted_agent]
+        else:
+            self.scripted_agent = None
     def forward(self, phi):
-        phi_pi = self.pi_body(phi)
-        mean = F.tanh(self.fc_pi(phi_pi))
-        std = F.softplus(self.std).expand(mean.size(0), -1)
+
+        if self.scripted_agent == None :
+            phi_pi = self.pi_body(phi)
+            mean = F.tanh(self.fc_pi(phi_pi))
+
+        else:
+
+            mean = torch.tensor(self.scripted_agent(phi),dtype=torch.float32)
+
+
+        std = F.softplus(self.std).expand(mean.size(0), -1)*0
 
         phi_beta = self.beta_body(phi)
         beta = F.sigmoid(self.fc_beta(phi_beta))
@@ -291,7 +304,10 @@ class OptionGaussianActorCriticNet(nn.Module, BaseNet):
                  phi_body=None,
                  actor_body=None,
                  critic_body=None,
-                 option_body_fn=None):
+                 option_body_fn=None,
+                 scripted_agents=None,
+                 load_options=None,
+                 state_normalizer=None):
         super(OptionGaussianActorCriticNet, self).__init__()
         if phi_body is None: phi_body = DummyBody(state_dim)
         if critic_body is None: critic_body = DummyBody(phi_body.feature_dim)
@@ -301,7 +317,16 @@ class OptionGaussianActorCriticNet(nn.Module, BaseNet):
         self.actor_body = actor_body
         self.critic_body = critic_body
 
-        self.options = nn.ModuleList([SingleOptionNet(action_dim, option_body_fn) for _ in range(num_options)])
+        o = []
+
+        if scripted_agents is not None:
+            for s in scripted_agents:
+                o.append(SingleOptionNet(action_dim, option_body_fn, s,state_normalizer))
+        #if load_options is not None:
+            #for opt in load_options:
+        o.extend([SingleOptionNet(action_dim, option_body_fn) for _ in range(num_options-len(o))])
+
+        self.options = nn.ModuleList(o)
 
         self.fc_pi_o = layer_init(nn.Linear(actor_body.feature_dim, num_options), 1e-3)
         self.fc_q_o = layer_init(nn.Linear(critic_body.feature_dim, num_options), 1e-3)
@@ -323,6 +348,7 @@ class OptionGaussianActorCriticNet(nn.Module, BaseNet):
             mean.append(prediction['mean'].unsqueeze(1))
             std.append(prediction['std'].unsqueeze(1))
             beta.append(prediction['beta'])
+        #print(std)
         mean = torch.cat(mean, dim=1)
         std = torch.cat(std, dim=1)
         beta = torch.cat(beta, dim=1)
