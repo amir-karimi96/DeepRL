@@ -57,7 +57,7 @@ def batch_mujoco():
 
     for game in games:
         for r in range(10):
-            params.append([a_squared_c_ppo_continuous, dict(game=game, run=r, tasks=False, remark='ASC-PPO', gate=nn.Tanh())])
+            params.append([a_squared_c_ppo_continuous, dict(game=game, run=r, tasks=False, remark='ASC-PPO', gate=nn.Tanh(), scripted_agents=['fetch_reacher'])])
             # params.append([a_squared_c_a2c_continuous, dict(game=game, run=r, tasks=False, remark='ASC-A2C', gate=nn.Tanh())])
             # params.append([ppo_continuous, dict(game=game, run=r, tasks=False, remark='PPO', gate=nn.Tanh())])
             # params.append([oc_continuous, dict(game=game, run=r, tasks=False, remark='OC', gate=nn.Tanh())])
@@ -217,6 +217,8 @@ def a_squared_c_ppo_continuous(**kwargs):
     kwargs.setdefault('tasks', False)
     kwargs.setdefault('max_steps', 2e6)
     kwargs.setdefault('beta_weight', 0)
+    kwargs.setdefault('scripted_agents',None)
+    kwargs.setdefault('load_options',None)
     config = Config()
     config.merge(kwargs)
 
@@ -237,6 +239,8 @@ def a_squared_c_ppo_continuous(**kwargs):
         actor_body=FCBody(config.state_dim, hidden_units=hidden_units, gate=config.gate),
         critic_body=FCBody(config.state_dim, hidden_units=hidden_units, gate=config.gate),
         option_body_fn=lambda: FCBody(config.state_dim, hidden_units=hidden_units, gate=config.gate),
+        scripted_agents=config.scripted_agents,
+        load_options=config.load_options
     )
     config.optimizer_fn = lambda params: torch.optim.Adam(params, 3e-4, eps=1e-5)
     config.discount = 0.99
@@ -575,7 +579,7 @@ if __name__ == '__main__':
     set_one_thread()
     select_device(-1)
 
-    batch_mujoco()
+    #batch_mujoco()
     #batch_dm()
 
     game = 'FetchPickAndPlaceDense-v1'
@@ -617,12 +621,13 @@ if __name__ == '__main__':
         game=game,
         learning='all',
         log_level=1,
-        num_o=4,
+        num_o=1,
         opt_ep=5,
         freeze_v=False,
-        tasks=True,
+        tasks=False,
         # gate=nn.Tanh(),
         save_interval=int(1e6 / 2048) * 2048,
+        scripted_agents=['fetch_reacher']
     )
 
     # ahp_ppo_continuous(
