@@ -85,6 +85,9 @@ class FetchWrapper(gym.Wrapper):
         self.total_rewards += reward
 
         obs = np.concatenate([D['desired_goal'],D['achieved_goal'],D['observation']])
+
+        print(obs)
+
         if done:
             info['episodic_return'] = self.total_rewards
             self.total_rewards = 0

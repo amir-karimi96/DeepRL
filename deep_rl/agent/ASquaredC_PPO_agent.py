@@ -23,6 +23,7 @@ class ASquaredCPPOAgent(BaseAgent):
 
         self.worker_index = tensor(np.arange(config.num_workers)).long()
         self.states = self.task.reset()
+        
         self.states = config.state_normalizer(self.states)
         self.is_initial_states = tensor(np.ones((config.num_workers))).byte()
         self.prev_options = tensor(np.zeros(config.num_workers)).long()
@@ -218,6 +219,7 @@ class ASquaredCPPOAgent(BaseAgent):
             v_hat = (prediction['q_o'] * pi_hat).sum(-1).unsqueeze(-1)
 
             next_states, rewards, terminals, info = self.task.step(to_np(actions))
+            print(next_states)
             self.task.env.envs[0].render()
             self.record_online_return(info)
             rewards = config.reward_normalizer(rewards)
