@@ -38,8 +38,9 @@ class MeanStdNormalizer(BaseNormalizer):
             self.rms = RunningMeanStd(shape=(1,) + x.shape[1:])
         if not self.read_only:
             self.rms.update(x)
-        return np.clip((x - self.rms.mean) / np.sqrt(self.rms.var + self.epsilon),
-                       -self.clip, self.clip)
+        #return np.clip((x - self.rms.mean) / np.sqrt(self.rms.var + self.epsilon),
+        #               -self.clip, self.clip)
+        return x
 
     def state_dict(self):
         return {'mean': self.rms.mean,
