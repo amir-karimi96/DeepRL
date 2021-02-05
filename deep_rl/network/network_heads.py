@@ -264,30 +264,31 @@ class SingleOptionNet(nn.Module):
                  scripted_agent=None,
                  state_normalizer=None):
         super(SingleOptionNet, self).__init__()
-        self.pi_body = body_fn()
-        self.beta_body = body_fn()
-        self.fc_pi = layer_init(nn.Linear(self.pi_body.feature_dim, action_dim), 1e-3)
-        self.fc_beta = layer_init(nn.Linear(self.beta_body.feature_dim, 1), 1e-3)
-        self.std = nn.Parameter(torch.zeros((1, action_dim)))
+
         if scripted_agent is not None:
-            self.scripted_agent = globals()[scripted_agent]
+            self.scripted_agent = globals()[scripted_agent]()
+            self.std = torch.zeros((1, action_dim))
         else:
+            self.beta_body = body_fn()
+            self.fc_beta = layer_init(nn.Linear(self.beta_body.feature_dim, 1), 1e-3)
+            self.std = nn.Parameter(torch.zeros((1, action_dim)))
+            self.pi_body = body_fn()
+            self.fc_pi = layer_init(nn.Linear(self.pi_body.feature_dim, action_dim), 1e-3)
             self.scripted_agent = None
     def forward(self, phi):
 
         if self.scripted_agent == None :
             phi_pi = self.pi_body(phi)
             mean = F.tanh(self.fc_pi(phi_pi))
-
+            std = F.softplus(self.std).expand(mean.size(0), -1)
+            phi_beta = self.beta_body(phi)
+            beta = F.sigmoid(self.fc_beta(phi_beta))
         else:
 
-            mean = torch.tensor(self.scripted_agent(phi),dtype=torch.float32)
+            mean = torch.tensor(self.scripted_agent.step(phi),dtype=torch.float32)
+            std = F.softplus(self.std).expand(mean.size(0), -1)*0
+            beta = torch.tensor(self.scripted_agent.beta(phi),dtype=torch.float32)
 
-
-        std = F.softplus(self.std).expand(mean.size(0), -1)*0
-
-        phi_beta = self.beta_body(phi)
-        beta = F.sigmoid(self.fc_beta(phi_beta))
 
         return {
             'mean': mean,
@@ -322,6 +323,7 @@ class OptionGaussianActorCriticNet(nn.Module, BaseNet):
         if scripted_agents is not None:
             for s in scripted_agents:
                 o.append(SingleOptionNet(action_dim, option_body_fn, s,state_normalizer))
+                print(o[-1].state_dict())
         #if load_options is not None:
             #for opt in load_options:
         o.extend([SingleOptionNet(action_dim, option_body_fn) for _ in range(num_options-len(o))])
@@ -348,7 +350,7 @@ class OptionGaussianActorCriticNet(nn.Module, BaseNet):
             mean.append(prediction['mean'].unsqueeze(1))
             std.append(prediction['std'].unsqueeze(1))
             beta.append(prediction['beta'])
-        #print(std)
+        # print(beta)
         mean = torch.cat(mean, dim=1)
         std = torch.cat(std, dim=1)
         beta = torch.cat(beta, dim=1)
