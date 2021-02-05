@@ -23,7 +23,7 @@ class ASquaredCPPOAgent(BaseAgent):
 
         self.worker_index = tensor(np.arange(config.num_workers)).long()
         self.states = self.task.reset()
-        
+
         self.states = config.state_normalizer(self.states)
         self.is_initial_states = tensor(np.ones((config.num_workers))).byte()
         self.prev_options = tensor(np.zeros(config.num_workers)).long()
@@ -36,10 +36,13 @@ class ASquaredCPPOAgent(BaseAgent):
         inter_pi = prediction['inter_pi']
         mask = torch.zeros_like(inter_pi)
         mask[self.worker_index, prev_option] = 1
-        beta = prediction['beta']
+        beta = (prediction['beta'][self.worker_index:self.worker_index+1,prev_option]).transpose(dim0=0,dim1=1)
+        #print(beta.shape, mask.shape,inter_pi.shape)
         pi_hat = (1 - beta) * mask + beta * inter_pi
+
         is_intial_states = is_intial_states.view(-1, 1).expand(-1, inter_pi.size(1))
         pi_hat = torch.where(is_intial_states, inter_pi, pi_hat)
+        # print(pi_hat)
         return pi_hat
 
     def compute_pi_bar(self, options, action, mean, std):
@@ -201,7 +204,9 @@ class ASquaredCPPOAgent(BaseAgent):
             pi_hat = self.compute_pi_hat(prediction, self.prev_options, self.is_initial_states)
             dist = torch.distributions.Categorical(probs=pi_hat)
             options = dist.sample()
-
+            #if prediction['beta'][:,self.prev_options]==1:
+                #options=(self.prev_options+1)%3
+            #print(prediction['beta'],options)
             self.logger.add_scalar('beta', prediction['beta'][self.worker_index, self.prev_options], log_level=5)
             self.logger.add_scalar('option', options[0], log_level=5)
             self.logger.add_scalar('pi_hat_ent', dist.entropy(), log_level=5)
@@ -219,8 +224,8 @@ class ASquaredCPPOAgent(BaseAgent):
             v_hat = (prediction['q_o'] * pi_hat).sum(-1).unsqueeze(-1)
 
             next_states, rewards, terminals, info = self.task.step(to_np(actions))
-            print(next_states)
-            self.task.env.envs[0].render()
+            #print(next_states)
+            #self.task.env.envs[0].render()
             self.record_online_return(info)
             rewards = config.reward_normalizer(rewards)
             next_states = config.state_normalizer(next_states)
@@ -278,3 +283,6 @@ class ASquaredCPPOAgent(BaseAgent):
             else:
                 self.learn(storage, 'bar')
             self.count += 1
+
+    def save_option(index,filename):
+        torch.save(self.network.options[index].state_dict(), '%s.model' % (filename))
