@@ -50,7 +50,7 @@ def make_env(env_id, seed, rank, episode_life=True):
                 env = TransposeImage(env)
             env = FrameStack(env, 4)
 
-        if env_id=="FetchPickAndPlaceDense-v1":
+        if env_id=="FetchPickAndPlaceDense-v1" or env_id=="FetchPickAndPlace-v1":
             env = FetchWrapper(env)
         return env
 
@@ -86,7 +86,7 @@ class FetchWrapper(gym.Wrapper):
 
         obs = np.concatenate([D['desired_goal'],D['achieved_goal'],D['observation']])
 
-        print(obs)
+        #print(obs)
 
         if done:
             info['episodic_return'] = self.total_rewards
