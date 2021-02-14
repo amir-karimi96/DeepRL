@@ -29,14 +29,15 @@ class ASquaredCPPOAgent(BaseAgent):
         self.prev_options = tensor(np.zeros(config.num_workers)).long()
 
         self.count = 0
-
+        #self.save_option(-1,'last_option')
         self.all_options = []
 
     def compute_pi_hat(self, prediction, prev_option, is_intial_states):
         inter_pi = prediction['inter_pi']
         mask = torch.zeros_like(inter_pi)
         mask[self.worker_index, prev_option] = 1
-        beta = (prediction['beta'][self.worker_index:self.worker_index+1,prev_option]).transpose(dim0=0,dim1=1)
+        #beta = (prediction['beta'][self.worker_index:self.worker_index+1,prev_option]).transpose(dim0=0,dim1=1)
+        beta = prediction['beta']
         #print(beta.shape, mask.shape,inter_pi.shape)
         pi_hat = (1 - beta) * mask + beta * inter_pi
 
@@ -284,5 +285,5 @@ class ASquaredCPPOAgent(BaseAgent):
                 self.learn(storage, 'bar')
             self.count += 1
 
-    def save_option(index,filename):
-        torch.save(self.network.options[index].state_dict(), '%s.model' % (filename))
+    def save_option(self,index,filename):
+        torch.save(self.network.options[index].state_dict(), 'data/%s.model' % (filename))

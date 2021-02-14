@@ -307,7 +307,7 @@ class OptionGaussianActorCriticNet(nn.Module, BaseNet):
                  critic_body=None,
                  option_body_fn=None,
                  scripted_agents=None,
-                 load_options=None,
+                 learned_options=None,
                  state_normalizer=None):
         super(OptionGaussianActorCriticNet, self).__init__()
         if phi_body is None: phi_body = DummyBody(state_dim)
@@ -324,8 +324,12 @@ class OptionGaussianActorCriticNet(nn.Module, BaseNet):
             for s in scripted_agents:
                 o.append(SingleOptionNet(action_dim, option_body_fn, s,state_normalizer))
                 print(o[-1].state_dict())
-        #if load_options is not None:
-            #for opt in load_options:
+        if learned_options is not None:
+            for opt_name in learned_options:
+                o.append(SingleOptionNet(action_dim, option_body_fn))
+                state_dict = torch.load('data/%s.model' % opt_name, map_location=lambda storage, loc: storage)
+                o[-1].load_state_dict(state_dict)
+                print(state_dict)
         o.extend([SingleOptionNet(action_dim, option_body_fn) for _ in range(num_options-len(o))])
 
         self.options = nn.ModuleList(o)

@@ -218,7 +218,7 @@ def a_squared_c_ppo_continuous(**kwargs):
     kwargs.setdefault('max_steps', 2e6)
     kwargs.setdefault('beta_weight', 0)
     kwargs.setdefault('scripted_agents',None)
-    kwargs.setdefault('load_options',None)
+    kwargs.setdefault('learned_options',None)
     config = Config()
     config.merge(kwargs)
 
@@ -240,7 +240,7 @@ def a_squared_c_ppo_continuous(**kwargs):
         critic_body=FCBody(config.state_dim, hidden_units=hidden_units, gate=config.gate),
         option_body_fn=lambda: FCBody(config.state_dim, hidden_units=hidden_units, gate=config.gate),
         scripted_agents=config.scripted_agents,
-        load_options=config.load_options
+        learned_options=config.learned_options
     )
     config.optimizer_fn = lambda params: torch.optim.Adam(params, 3e-4, eps=1e-5)
     config.discount = 0.99
@@ -579,11 +579,11 @@ if __name__ == '__main__':
     set_one_thread()
     select_device(-1)
 
-    batch_mujoco()
+    #batch_mujoco()
     #batch_dm()
 
     game = 'FetchPickAndPlaceDense-v1'
-    game = 'FetchPickAndPlace-v1'
+    #game = 'FetchPickAndPlace-v1'
     # game = 'Walker2d-v2'
     # game = 'Swimmer-v2'
     # game = 'dm-walker-walk'
@@ -622,13 +622,14 @@ if __name__ == '__main__':
         game=game,
         learning='all',
         log_level=1,
-        num_o=3,
+        num_o=4,
         opt_ep=5,
         freeze_v=False,
         tasks=False,
         # gate=nn.Tanh(),
         save_interval=int(1e6 / 2048) * 2048,
-        scripted_agents=['fetch_reach_object','fetch_grasp','fetch_reach_goal']
+        scripted_agents=['fetch_reach_object','fetch_grasp','fetch_reach_goal'],
+        learned_options=['last_option'],
     )
 
     # ahp_ppo_continuous(
